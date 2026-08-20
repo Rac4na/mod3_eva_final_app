@@ -1,9 +1,14 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 
 GREETING_NAME = os.getenv("GREETING_NAME", "Daybid")
+
+# La variable la inyecta Azure Container Apps resolviendo un secreto del Key
+# Vault con la identidad administrada de la app. Ver keyvault.tf en el repo
+# mod3_eva_final_infra: la aplicacion nunca habla con el Key Vault.
+SECRETO_ENV = "SECRETO_DEMO"
 
 app = FastAPI(
     title="Hello Microservice",
@@ -25,6 +30,29 @@ def hello():
     return {
         "message": f"Hola, {GREETING_NAME}!",
         "framework": "fastapi",
+    }
+
+
+@app.get("/secreto")
+def secreto():
+    # Se lee en cada peticion y no al importar el modulo, para que rotar el
+    # secreto solo requiera una revision nueva y no un cambio de codigo.
+    valor = os.getenv(SECRETO_ENV)
+
+    # 503 y no 500: el servicio esta sano, es la configuracion la que falta.
+    # Ocurre al ejecutar el contenedor sin la variable, fuera de Azure.
+    if not valor:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"El secreto no esta disponible: falta la variable {SECRETO_ENV}. "
+                "En Azure la inyecta Container Apps desde el Key Vault."
+            ),
+        )
+
+    return {
+        "secreto": valor,
+        "origen": "azure-key-vault",
     }
 
 

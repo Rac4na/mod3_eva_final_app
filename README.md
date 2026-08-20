@@ -27,6 +27,7 @@ La infraestructura de despliegue vive en un repositorio aparte:
 |--------|-----------|-----------|
 | GET    | `/`       | Redirige (307) a `/docs` |
 | GET    | `/hello`  | `{"message": "Hola, Daybid!", "framework": "fastapi"}` |
+| GET    | `/secreto`| `{"secreto": "...", "origen": "azure-key-vault"}` |
 | GET    | `/health` | `{"status": "ok"}` |
 | GET    | `/docs`   | Documentación OpenAPI (Swagger UI) |
 
@@ -51,6 +52,48 @@ Probar en otra terminal:
 ```bash
 curl http://localhost:8000/hello
 ```
+
+## El endpoint /secreto
+
+Devuelve un valor almacenado en **Azure Key Vault**. Lo importante es que la
+aplicación **no habla con Key Vault**: no incluye el SDK de Azure ni maneja
+credenciales. Solo lee una variable de entorno.
+
+```python
+valor = os.getenv("SECRETO_DEMO")
+```
+
+Quien resuelve el secreto es Azure Container Apps, usando la identidad
+administrada de la app. La cadena completa está definida en Terraform, en el
+repositorio `mod3_eva_final_infra`:
+
+```
+Key Vault ── secreto-demo
+    │  la plataforma lo lee con la identidad de la app
+    ▼
+Container App
+    ├── secret { key_vault_secret_id, identity }
+    └── env    { name = "SECRETO_DEMO", secret_name = ... }
+              │
+              ▼
+        os.getenv("SECRETO_DEMO")
+```
+
+Esto tiene una consecuencia práctica: el endpoint se puede probar en local y en
+CI sin Azure y sin mockear nada.
+
+```bash
+docker run --rm -p 8000:8000 -e SECRETO_DEMO="lo-que-sea" hello-fastapi:1.0.0
+curl http://localhost:8000/secreto
+```
+
+Sin la variable, `/secreto` responde **503** y no 500: el servicio está sano y
+es la configuración la que falta.
+
+> Exponer el valor de un secreto en un endpoint público anula el propósito de un
+> Key Vault. Aquí se hace porque el ejercicio lo pide. En un sistema real este
+> endpoint devolvería metadatos —que la lectura funciona, el nombre, la
+> versión— y nunca el valor.
 
 ## Cambiar el nombre del saludo
 
