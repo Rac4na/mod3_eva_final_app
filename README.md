@@ -25,9 +25,14 @@ La infraestructura de despliegue vive en un repositorio aparte:
 
 | Método | Ruta      | Respuesta |
 |--------|-----------|-----------|
+| GET    | `/`       | Redirige (307) a `/docs` |
 | GET    | `/hello`  | `{"message": "Hola, Daybid!", "framework": "fastapi"}` |
 | GET    | `/health` | `{"status": "ok"}` |
 | GET    | `/docs`   | Documentación OpenAPI (Swagger UI) |
+
+La raíz redirige por comodidad: sin ella, abrir el dominio a secas devuelve
+`{"detail":"Not Found"}` y parece que el despliegue está roto cuando en realidad
+es la respuesta correcta de una API que no publica nada en `/`.
 
 ## Construir la imagen
 
