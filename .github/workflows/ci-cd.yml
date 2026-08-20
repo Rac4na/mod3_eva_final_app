@@ -56,6 +56,10 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
+    # Los secretos de Docker Hub y Azure viven en este environment: sin esta
+    # linea el job no los ve y llegan vacios a las acciones de login.
+    environment: dockerhub-publish
+
     # id-token: write habilita el OIDC con el que azure/login pide un token
     # temporal a Entra ID. Sin esta línea no hay federación posible.
     permissions:

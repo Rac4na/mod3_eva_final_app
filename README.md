@@ -115,7 +115,10 @@ az containerapp update -n ca-mod3-eva-final -g rg-mod3-eva-final \
 
 ### Secrets requeridos
 
-En `Settings → Secrets and variables → Actions → Secrets`:
+En `Settings → Environments → dockerhub-publish → Environment secrets`. Son
+secretos de environment, no de repositorio: por eso el job `deploy` declara
+`environment: dockerhub-publish`, sin lo cual no los vería y llegarían vacíos a
+las acciones de login.
 
 | Secret | Para qué |
 |---|---|
@@ -128,9 +131,14 @@ En `Settings → Secrets and variables → Actions → Secrets`:
 **No hay `AZURE_CLIENT_SECRET`.** La autenticación contra Azure es por OIDC: en
 cada ejecución GitHub emite un token de identidad de corta vida y Entra ID lo
 canjea por credenciales. La confianza está atada a una credencial federada con
-subject `repo:Rac4na/mod3_eva_final_app:ref:refs/heads/main`, de modo que solo
-esta rama de este repositorio puede obtener acceso. No existe ninguna contraseña
-de larga vida que pueda filtrarse.
+subject `repo:Rac4na/mod3_eva_final_app:environment:dockerhub-publish`, de modo
+que solo los jobs de este repositorio que apuntan a ese environment pueden
+obtener acceso. No existe ninguna contraseña de larga vida que pueda filtrarse.
+
+El subject lo determina el propio `environment:` del job: al declararlo, GitHub
+emite el token como `...:environment:<nombre>` en lugar de `...:ref:<rama>`. Si
+alguna vez se quita esa línea, hay que registrar en Entra ID la credencial
+federada de rama que le corresponde.
 
 Por eso el job de despliegue declara:
 
